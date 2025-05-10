@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cardy</title> <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/ffffff/303942?text=Cardy&font=inter"> <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior-y: contain;
+            overscroll-behavior-x: none;
+            background-color: #f0f2f5; /* 全体の背景色 */
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 420px; /* スマホ画面の一般的な最大幅 */
+            margin: 0 auto;
+            background-color: #ffffff; /* アプリコンテナ自体の背景は白 */
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden; /* .upload-button-container がはみ出ないように */
+            position: relative; /* .upload-button-container のfixed配置の基準にするため */
+        }
+
+        /* ヘッダーのコンテナ */
+        .header-container {
+            padding: 12px 0 2px 0; /* 上パディング12px、下パディングを2pxにさらに縮小 */
+            background-color: #ffffff;
+            flex-shrink: 0;
+        }
+
+        .fixed-header {
+            background-color: #303942; /* バー自体の色 */
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            border-radius: 8px; /* 角を丸くする */
+            max-width: 340px; /* カードコンテナと同じ最大幅 */
+            margin: 0 auto; /* 中央揃え */
+            width: calc(100% - 40px); 
+        }
+        @media (min-width: 420px) { 
+            .fixed-header {
+                width: 340px; /* 固定幅 */
+            }
+        }
+
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        .header-left .back-icon {
+            margin-right: 12px;
+        }
+        .header-left .status-dot {
+            width: 12px; /* 緑の点を大きく */
+            height: 12px; /* 緑の点を大きく */
+            background-color: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px; /* 少しマージン調整 */
+        }
+        .header-left .status-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .header-right .datetime-text {
+            font-size: 0.75rem;
+            color: #a0a8b0;
+        }
+
+        .card-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* カードコンテナを中央に寄せる */
+            padding: 2px 0 10px 0; /* 下パディングをページネーション分考慮して調整 */
+            overflow: hidden;
+            background-color: #ffffff;
+        }
+
+        .card-container {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            width: calc(100% - 40px);
+            max-width: 340px;
+            margin: 0 auto;
+            gap: 16px;
+            margin-bottom: 10px; /* カードとページネーションの間のマージンを調整 */
+        }
+        .card-container::-webkit-scrollbar {
+            display: none;
+        }
+        .card-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .card {
+            scroll-snap-align: center;
+            flex: 0 0 100%;
+            aspect-ratio: 53.98 / 85.6;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            background-color: #e0e0e0;
+        }
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        /* ページネーションコンテナのスタイル */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2px 0; /* ページネーション自体の上下パディングを調整 */
+            width: 100%;
+        }
+        .pagination-dot {
+            width: 10px;  /* ドットのサイズを大きく */
+            height: 10px; /* ドットのサイズを大きく */
+            border-radius: 50%;
+            background-color: #D9F1F1; /* 非アクティブ時の色 */
+            margin: 0 6px; /* ドット間のマージンを調整 */
+            transition: all 0.3s ease; /* スムーズな変化のため */
+            cursor: pointer;
+        }
+        .pagination-dot.active {
+            background-color: #40B8B8; /* アクティブ時の色 */
+            transform: scale(1.4); /* さらに少し大きくする */
+        }
+
+        /* Swipe through pages テキストのスタイル */
+        .swipe-pages-text {
+            font-size: 0.85rem; /* フォントサイズを大きく */
+            color: #A5ABB0; /* 指定された色 */
+            text-align: center;
+            margin-top: 6px; /* ページネーションドットとの間隔を調整 */
+        }
+
+
+        .upload-button-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+        }
+
+        .upload-button {
+            background-color: transparent; 
+            color: transparent;
+            border: none;
+            padding: 0;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            text-indent: -9999px;
+            overflow: hidden;
+        }
+
+
+        .message-box {
+            position: fixed;
+            /* ページネーションとアップロードボタンを考慮して位置調整 */
+            bottom: 90px; 
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.75);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease, bottom 0.3s ease;
+            pointer-events: none;
+        }
+        .message-box.show {
+            opacity: 1;
+            bottom: 100px;
+        }
+
+        .touch-pan-x {
+            touch-action: pan-x;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header-container">
+            <header class="fixed-header">
+                <div class="header-left">
+                    <button id="backButton" class="focus:outline-none back-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                    </button>
+                    <span class="status-dot"></span>
+                    <span class="status-text">VALID</span>
+                </div>
+                <div class="header-right">
+                    <span id="datetimeDisplay" class="datetime-text"></span>
+                </div>
+            </header>
+        </div>
+
+        <main class="card-area">
+            <div id="cardContainer" class="card-container touch-pan-x">
+                <div class="card">
+                    <img src="https://placehold.co/300x470/00AEEF/FFFFFF?text=Card+1&font=inter"
+                         alt="カード1のプレースホルダー画像"
+                         onerror="this.onerror=null;this.src='https://placehold.co/300x470/CCCCCC/333333?text=Error+1&font=inter';">
+                </div>
+
+                <div class="card">
+                    <img src="https://placehold.co/300x470/FF6B6B/FFFFFF?text=Card+2&font=inter"
+                         alt="カード2のプレースホルダー画像"
+                         onerror="this.onerror=null;this.src='https://placehold.co/300x470/CCCCCC/333333?text=Error+2&font=inter';">
+                </div>
+
+                <div class="card">
+                     <img src="https://placehold.co/300x470/4CAF50/FFFFFF?text=Card+3&font=inter"
+                          alt="カード3のプレースホルダー画像"
+                          onerror="this.onerror=null;this.src='https://placehold.co/300x470/CCCCCC/333333?text=Error+3&font=inter';">
+                </div>
+            </div>
+            <div id="paginationContainer" class="pagination-container">
+                </div>
+            <p class="swipe-pages-text">Swipe through pages</p>
+
+            <div class="upload-button-container">
+                <button id="uploadTriggerButton" class="upload-button" aria-label="画像を選択">
+                    </button>
+                <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+            </div>
+        </main>
+    </div>
+
+    <div id="messageBox" class="message-box">
+        <span id="messageContent"></span>
+    </div>
+
+    <script>
+        // Service Workerの登録はここで行う
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js') // sw.jsを登録
+              .then(registration => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+              })
+              .catch(error => {
+                console.log('ServiceWorker registration failed: ', error);
+              });
+          });
+        }
+
+        const cardContainer = document.getElementById('cardContainer');
+        const cards = Array.from(cardContainer.children).filter(child => child.classList.contains('card'));
+        const backButton = document.getElementById('backButton');
+        const messageBox = document.getElementById('messageBox');
+        const messageContent = document.getElementById('messageContent');
+        const datetimeDisplay = document.getElementById('datetimeDisplay');
+        const uploadTriggerButton = document.getElementById('uploadTriggerButton');
+        const imageUploadInput = document.getElementById('imageUpload');
+        const paginationContainer = document.getElementById('paginationContainer'); // ページネーションコンテナを取得
+
+
+        let currentCardIndex = 0;
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let dateTimeInterval;
+
+
+        function formatDateTime(date) {
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            const h = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            const s = String(date.getSeconds()).padStart(2, '0');
+            return `${d}-${m}-${y} ${h}:${min}:${s}`;
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            datetimeDisplay.textContent = formatDateTime(now);
+        }
+
+        function startRealtimeClock() {
+            updateDateTime();
+            if (dateTimeInterval) clearInterval(dateTimeInterval);
+            dateTimeInterval = setInterval(updateDateTime, 1000);
+        }
+
+        function stopRealtimeClock() {
+            if (dateTimeInterval) clearInterval(dateTimeInterval);
+        }
+
+        // ページネーションドットの生成と更新
+        function setupPagination() {
+            if (!paginationContainer) return; // paginationContainer がなければ何もしない
+            paginationContainer.innerHTML = ''; // 既存のドットをクリア
+            cards.forEach((_, index) => {
+                const dot = document.createElement('button'); // button要素に変更してクリック可能に
+                dot.classList.add('pagination-dot');
+                dot.setAttribute('aria-label', `カード ${index + 1}へ移動`);
+                dot.addEventListener('click', () => {
+                    scrollToCard(index);
+                });
+                paginationContainer.appendChild(dot);
+            });
+            updatePaginationDots(); // 初期のアクティブ状態を設定
+        }
+
+        // ページネーションドットのアクティブ状態を更新
+        function updatePaginationDots() {
+            if (!paginationContainer) return;
+            const dots = paginationContainer.children;
+            for (let i = 0; i < dots.length; i++) {
+                dots[i].classList.toggle('active', i === currentCardIndex);
+            }
+        }
+
+
+        function scrollToCard(index, behavior = 'smooth') {
+            if (index >= 0 && index < cards.length) {
+                const cardWidth = cards[index].offsetWidth;
+                const containerGap = parseInt(window.getComputedStyle(cardContainer).gap) || 0;
+                cardContainer.style.scrollSnapType = 'none';
+                cardContainer.scrollTo({ left: (cardWidth + containerGap) * index, behavior: behavior });
+                currentCardIndex = index;
+                updatePaginationDots(); // カード移動後にドットを更新
+
+                if (behavior === 'smooth') {
+                    setTimeout(() => {
+                        cardContainer.style.scrollSnapType = 'x mandatory';
+                    }, 500);
+                } else {
+                     cardContainer.style.scrollSnapType = 'x mandatory';
+                }
+            }
+        }
+
+        let scrollTimeout;
+        cardContainer.addEventListener('scroll', () => {
+            if (cardContainer.style.scrollSnapType === 'none') return;
+
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                if (cards.length === 0) return;
+                const scrollLeft = cardContainer.scrollLeft;
+                const cardWidth = cards[0].offsetWidth;
+                const containerGap = parseInt(window.getComputedStyle(cardContainer).gap) || 0;
+                const newIndex = Math.round(scrollLeft / (cardWidth + containerGap));
+
+                if (newIndex !== currentCardIndex && newIndex >= 0 && newIndex < cards.length) {
+                    currentCardIndex = newIndex;
+                    updatePaginationDots(); // スクロールによるインデックス変更時もドットを更新
+                }
+            }, 150);
+        });
+
+        cardContainer.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+
+        cardContainer.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].clientX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchStartX - touchEndX > swipeThreshold) {
+                scrollToCard(Math.min(currentCardIndex + 1, cards.length - 1));
+            } else if (touchEndX - touchStartX > swipeThreshold) {
+                scrollToCard(Math.max(currentCardIndex - 1, 0));
+            }
+        }
+
+        backButton.addEventListener('click', () => {
+            showMessage('戻るボタンがクリックされました！');
+        });
+
+        uploadTriggerButton.addEventListener('click', () => {
+            imageUploadInput.click();
+        });
+
+        imageUploadInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (cards[currentCardIndex]) {
+                        const imgElement = cards[currentCardIndex].querySelector('img');
+                        if (imgElement) {
+                            imgElement.src = e.target.result;
+                            imgElement.onerror = () => {
+                                imgElement.src = 'https://placehold.co/300x470/CCCCCC/333333?text=Load+Error&font=inter';
+                                showMessage('画像の表示に失敗しました。');
+                            };
+                            showMessage('画像を変更しました！');
+                        }
+                    }
+                };
+                reader.onerror = () => {
+                    showMessage('ファイルの読み込みに失敗しました。');
+                };
+                reader.readAsDataURL(file);
+            } else if (file) {
+                showMessage('画像ファイルを選択してください。');
+            }
+            event.target.value = null;
+        });
+
+
+        let messageTimeout;
+        function showMessage(message) {
+            messageContent.textContent = message;
+            messageBox.classList.add('show');
+            clearTimeout(messageTimeout);
+            messageTimeout = setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
+        }
+
+        function initializeApp() {
+            startRealtimeClock();
+            if (cards.length > 0) {
+                setupPagination(); // ページネーションを初期化
+                scrollToCard(currentCardIndex, 'auto');
+            } else {
+                console.log("カードがありません");
+                if(paginationContainer) paginationContainer.innerHTML = ''; // カードがない場合はドットも消す
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            if (cards.length > 0) {
+                scrollToCard(currentCardIndex, 'auto');
+            }
+        });
+        
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'hidden') {
+                stopRealtimeClock();
+            } else {
+                startRealtimeClock();
+            }
+        });
+
+        // DOMContentLoaded で initializeApp を呼び出す
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
